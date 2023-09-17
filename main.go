@@ -12,7 +12,19 @@ import (
 )
 
 func getAnimal(c echo.Context) error {
+	txn := nrecho.FromContext(c)
+	txn.SetOption(newrelic.WithThisCodeLocation())
+	defer txn.StartSegment("getAnimal").End()
+
 	return c.String(http.StatusOK, "panda")
+}
+
+func hello(c echo.Context) error {
+	txn := nrecho.FromContext(c)
+	txn.SetOption(newrelic.WithThisCodeLocation())
+	defer txn.StartSegment("hello").End()
+
+	return c.String(http.StatusOK, "hello world")
 }
 
 func main() {
@@ -29,14 +41,13 @@ func main() {
 	}
 
 	e := echo.New()
+	e.Debug = true
 
 	e.Use(middleware.Logger())
 	e.Use(middleware.Recover())
 	e.Use(nrecho.Middleware(app))
 
-	e.GET("/hello", func(c echo.Context) error {
-		return c.String(http.StatusOK, "Hello, World!")
-	})
+	e.GET("/hello", hello)
 
 	g := e.Group("/animals")
 	g.GET("/:id", getAnimal)
